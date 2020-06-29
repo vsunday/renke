@@ -20,21 +20,25 @@
       }
   });
   
-  let s3 = new AWS.S3()
+  let s3 = new AWS.S3();
+  const ddb = new AWS.DynamoDB();
   
-  s3.listObjectsV2({Bucket: BUCKET}, function (err, data) {
-    if (err) console.log(err, err.stack);
-    else {
-      const contents = data['Contents'];
-      for (let i=0; i<contents.length; i++) {
-        let el = document.querySelector('#dummy').cloneNode(true);
-        el.removeAttribute('style');
-        el.querySelector('a').innerHTML = contents[i]['Key'];
-        el.querySelector('a').setAttribute('href', s3.getSignedUrl('getObject', {Bucket: BUCKET, Key: contents[i]['Key']}));
-        document.querySelector('#list').appendChild(el);
+  function refresh() {
+    s3.listObjectsV2({Bucket: BUCKET}, function (err, data) {
+      if (err) console.log(err, err.stack);
+      else {
+        const contents = data['Contents'];
+        for (let i=0; i<contents.length; i++) {
+          let el = document.querySelector('#dummy').cloneNode(true);
+          el.removeAttribute('style');
+          el.querySelector('a').innerHTML = contents[i]['Key'];
+          el.querySelector('a').setAttribute('href', s3.getSignedUrl('getObject', {Bucket: BUCKET, Key: contents[i]['Key']}));
+          document.querySelector('#list').appendChild(el);
+        }
       }
-    }
-  });
+    });
+  }
+  document.querySelector('button#refresh').addEventListener('click', refresh);
   
   // upload 
   function upload() {
@@ -58,5 +62,45 @@
     });
   }
   document.querySelector('button#upload').addEventListener('click', upload);
+  
+  function get_memo() {
+    const params = {
+      Key: {
+        "id": {
+          "S": ddb['config']['credentials']['params']['IdentityId']
+        }
+      },
+      TableName: "memo"
+    };
+    ddb.getItem(params, function (err, data) {
+      if (err) console.log(err);
+      else {
+        if (data == {}) {
+          // do nothing
+        } else {
+          document.querySelector('textarea').value = data['Item']['memo']['S'];
+        }
+      }
+    });
+  }
+  document.querySelector('button#fetch').addEventListener('click', get_memo);
+  
+  function put_memo() {
+    const params = {
+      Item: {
+        "id": {
+          "S": ddb['config']['credentials']['params']['IdentityId']
+        },
+        "memo": {
+          "S": document.querySelector('textarea').value
+        }
+      },
+      TableName: "memo"
+    };
+    ddb.putItem(params, function (err, data) {
+      if (err) console.log(err);
+    });
+  }
+  document.querySelector('button#put').addEventListener('click', put_memo);
   
 })();
