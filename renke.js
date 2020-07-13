@@ -24,14 +24,18 @@
   const ddb = new AWS.DynamoDB();
   
   function refresh() {
-    s3.listObjectsV2({Bucket: BUCKET}, function (err, data) {
+    let el_temp = document.querySelector('#dummy').cloneNode(true);
+    document.querySelector('#list').innerHTML = '';
+    document.querySelector('#list').appendChild(el_temp);
+    
+    s3.listObjectsV2({Bucket: BUCKET, Prefix: `user/${s3['config']['credentials']['params']['IdentityId']}`}, function (err, data) {
       if (err) console.log(err, err.stack);
       else {
         const contents = data['Contents'];
         for (let i=0; i<contents.length; i++) {
           let el = document.querySelector('#dummy').cloneNode(true);
           el.removeAttribute('style');
-          el.querySelector('a').innerHTML = contents[i]['Key'];
+          el.querySelector('a').innerHTML = contents[i]['Key'].split('/')[2];
           el.querySelector('a').setAttribute('href', s3.getSignedUrl('getObject', {Bucket: BUCKET, Key: contents[i]['Key']}));
           document.querySelector('#list').appendChild(el);
         }
@@ -51,7 +55,7 @@
     const params = {
       Body: file,
       Bucket: BUCKET,
-      Key: file['name']
+      Key: `user/${s3['config']['credentials']['params']['IdentityId']}/${file['name']}`
      };
     s3.putObject(params, function (err, data) {
       if (err) console.log(err);
