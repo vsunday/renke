@@ -1,0 +1,6 @@
+#!/bin/bash
+export BUCKET=bucket
+export TABLE=table
+export IDENTITY_POOL_ID=ipi
+export LOGIN=login
+export REGION=region

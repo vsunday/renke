@@ -1,5 +1,6 @@
 (function () {
-  const BUCKET = 'renke';
+  const BUCKET = '%%BUCKET%%';
+  const TABLE ='%%TABLE%%';
   const params = window.location.href.split('#')[1].split('&');
   let idToken = '';
   for (let i=0; i<params.length; i++) {
@@ -10,13 +11,13 @@
   
   // https://stackoverflow.com/questions/45926339/cognito-hosted-ui
   // Set the region where your identity pool exists (us-east-1, eu-west-1)
-  AWS.config.region = 'us-west-2';
+  AWS.config.region = '%%REGION%%';
   
   // Configure the credentials provider to use your identity pool
   AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-      IdentityPoolId: 'us-west-2:4dda5aa3-958a-48fb-8581-cfafd7f7fdc3',
+      IdentityPoolId: '%%IDENTITY_POOL_ID%%',
       Logins: {
-        'cognito-idp.us-west-2.amazonaws.com/us-west-2_kAIcqw6Pf': idToken
+        '%%LOGIN%%': idToken
       }
   });
   
@@ -61,7 +62,7 @@
       if (err) console.log(err);
       else {
         console.log('success');
-        console.log(data);
+        window.alert('upload suceeded');
       }
     });
   }
@@ -74,7 +75,7 @@
           "S": ddb['config']['credentials']['params']['IdentityId']
         }
       },
-      TableName: "memo"
+      TableName: TABLE
     };
     ddb.getItem(params, function (err, data) {
       if (err) console.log(err);
@@ -99,7 +100,7 @@
           "S": document.querySelector('textarea').value
         }
       },
-      TableName: "memo"
+      TableName: TABLE
     };
     ddb.putItem(params, function (err, data) {
       if (err) console.log(err);

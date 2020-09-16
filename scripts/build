@@ -1,0 +1,19 @@
+#!/bin/bash
+# copy
+if [ -d dist ]
+then
+  rm -fR dist
+fi
+
+mkdir dist
+cp ./src/* dist
+
+# load config
+. ./scripts/config
+
+# sed
+sed -i s/%%BUCKET%%/$BUCKET/g dist/renke.js 
+sed -i s/%%TABLE%%/$TABLE/g dist/renke.js 
+sed -i s/%%IDENTITY_POOL_ID%%/$IDENTITY_POOL_ID/g dist/renke.js 
+sed -i s/%%LOGIN%%/$LOGIN/g dist/renke.js 
+sed -i s/%%REGION%%/$REGION/g dist/renke.js 

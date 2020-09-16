@@ -1,0 +1,8 @@
+#!/bin/bash
+if [ -z $1 ]
+then
+  echo 'Please specify bucket name'
+  return 1
+fi
+
+aws s3 sync ./dist s3://$1 --exclude ".git/*" --exclude "sync"
