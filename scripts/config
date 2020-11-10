@@ -1,6 +1,16 @@
 #!/bin/bash
-export BUCKET=bucket
-export TABLE=table
-export IDENTITY_POOL_ID=ipi
-export LOGIN=login
-export REGION=region
+STACK_NAME=$1
+
+export BUCKET=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`BucketName`].OutputValue' --output text)
+export TABLE=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`TableName`].OutputValue' --output text)
+export IDENTITY_POOL_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`IdentityPoolIdName`].OutputValue' --output text)
+export LOGIN=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`Login`].OutputValue' --output text)
+export CLIENT_ID=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --query 'Stacks[0].Outputs[?OutputKey==`ClientId`].OutputValue' --output text)
+export REGION=$2
+
+echo "BUCKET: $BUCKET"
+echo "TABLE: $TABLE"
+echo "IDENTITY_POOL_ID: $IDENTITY_POOL_ID"
+echo "LOGIN: $LOGIN"
+echo "CLIENT_ID: $CLIENT_ID"
+echo "REGION: $REGION"

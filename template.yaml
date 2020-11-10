@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: 2010-09-09
+# Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  SourceIp:
+    Type: String
+    Description: Source IP allowed to access S3 bucket.
+    Default: 1.2.3.4/32
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 7
+            Status: Enabled
+            Prefix: user
+      Tags:
+        - Key: pjt
+          Value: renke
+      # WebsiteConfiguration:
+      #   IndexDocument: index.html
+        
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: Bucket
+      PolicyDocument:
+        Statement:
+          - Action: s3:GetObject
+            Effect: Allow
+            Resource:
+              - Fn::Sub: arn:aws:s3:::${Bucket}/login.html
+              - Fn::Sub: arn:aws:s3:::${Bucket}/renke.html
+              - Fn::Sub: arn:aws:s3:::${Bucket}/renke.js
+            Principal: '*'
+            Condition:
+              IpAddress:
+                aws:SourceIp:
+                  Ref: SourceIp
+                  
+  # cognito
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: True
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: False
+          RequireNumbers: False
+          RequireSymbols: False
+          RequireUppercase: False
+          TemporaryPasswordValidityDays: 365
+          
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties: # https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-configuring-app-integration.html
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthFlowsUserPoolClient: True
+      AllowedOAuthScopes:
+        - phone
+        - email
+        - openid
+        - profile
+        - aws.cognito.signin.user.admin
+      CallbackURLs:
+        - Fn::Sub: https://${Bucket}.s3.${AWS::Region}.amazonaws.com/renke.html
+      SupportedIdentityProviders:
+        - COGNITO
+      UserPoolId:
+        Ref: UserPool
+        
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: renke
+      UserPoolId:
+        Ref: UserPool
+      
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties: 
+      AllowUnauthenticatedIdentities: False
+      CognitoIdentityProviders:
+        - ClientId:
+            Ref: UserPoolClient
+          ProviderName:
+            Fn::GetAtt: UserPool.ProviderName
+        
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId:
+        Ref: IdentityPool
+      Roles: 
+        authenticated:
+          Fn::GetAtt: AuthenticatedRole.Arn 
+        unauthenticated:
+          Fn::GetAtt: AuthenticatedRole.Arn 
+  
+  # role with access to S3, dynamoDB
+  AuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Federated: cognito-identity.amazonaws.com
+              Action: sts:AssumeRoleWithWebIdentity
+              Condition:
+                StringEquals:
+                  cognito-identity.amazonaws.com:aud:
+                    Ref: IdentityPool
+                ForAnyValue:StringLike:
+                  cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: renke-user
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - Fn::Sub: arn:aws:s3:::${Bucket}/kyle.png
+                  - Fn::Sub: arn:aws:s3:::${Bucket}/user/${!cognito-identity.amazonaws.com:sub}
+                  - Fn::Sub: arn:aws:s3:::${Bucket}/user/${!cognito-identity.amazonaws.com:sub}/*
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource:
+                  - Fn::Sub: arn:aws:s3:::${Bucket}
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      - user/${cognito-identity.amazonaws.com:sub}
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                Resource:
+                  - Fn::Sub: ${DDB.Arn}
+                Condition: # https://aws.amazon.com/blogs/mobile/building-fine-grained-authorization-using-amazon-cognito-user-pools-groups/
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys:
+                      - ${cognito-identity.amazonaws.com:sub}
+      Tags:
+        - Key: pjt
+          Value: renke
+  
+  # dynamo db
+  DDB:
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      Tags:
+        - Key: pjt
+          Value: renke
+
+Outputs:
+  BucketName:
+    Value:
+      Ref: Bucket
+  TableName:
+    Value:
+      Ref: DDB
+  IdentityPoolIdName:
+    Value:
+      Ref: IdentityPool
+  Login:
+    Value:
+      Fn::Sub: cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+  ClientId:
+    Value:
+      Ref: UserPoolClient 

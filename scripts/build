@@ -9,11 +9,12 @@ mkdir dist
 cp ./src/* dist
 
 # load config
-. ./scripts/config
+. ./scripts/config $1 $2
 
 # sed
-sed -i s/%%BUCKET%%/$BUCKET/g dist/renke.js 
-sed -i s/%%TABLE%%/$TABLE/g dist/renke.js 
-sed -i s/%%IDENTITY_POOL_ID%%/$IDENTITY_POOL_ID/g dist/renke.js 
-sed -i s/%%LOGIN%%/$LOGIN/g dist/renke.js 
-sed -i s/%%REGION%%/$REGION/g dist/renke.js 
+sed -i s/%%BUCKET%%/$BUCKET/g dist/*
+sed -i s/%%TABLE%%/$TABLE/g dist/*
+sed -i s/%%IDENTITY_POOL_ID%%/$IDENTITY_POOL_ID/g dist/*
+sed -i s,%%LOGIN%%,$LOGIN,g dist/*
+sed -i s,%%CLIENT_ID%%,$CLIENT_ID,g dist/*
+sed -i s/%%REGION%%/$REGION/g dist/*
