@@ -37,6 +37,7 @@ Resources:
             Effect: Allow
             Resource:
               - Fn::Sub: arn:aws:s3:::${Bucket}/login.html
+              - Fn::Sub: arn:aws:s3:::${Bucket}/reload.html
               - Fn::Sub: arn:aws:s3:::${Bucket}/renke.html
               - Fn::Sub: arn:aws:s3:::${Bucket}/renke.js
             Principal: '*'
